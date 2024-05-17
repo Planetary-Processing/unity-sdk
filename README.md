@@ -1,3 +1,3 @@
-*** Planetary Processing SDK ***
+== Planetary Processing SDK ==
 
-Website: (planetaryprocessing.io](https://planetaryprocessing.io)
+Website: (planetaryprocessing.io](!https://planetaryprocessing.io)
