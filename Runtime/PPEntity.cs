@@ -17,6 +17,7 @@ public class PPEntity : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        entity = Master.GetEntity(UUID);
         updatePosition();
     }
 
