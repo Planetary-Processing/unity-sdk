@@ -1,26 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Planetary;
 
-[AddComponentMenu("PP/Player")]
-public class PPPlayer : PPEntity
-{
+namespace Planetary {
 
-    void Start() {
-        Type = "player";
-    }
-    
-new void FixedUpdate()
+    [AddComponentMenu("PP/Player")]
+    public class PPPlayer : PPEntity
     {
-        if (entity == null) {
-            Debug.Log("null entity");
+
+        void Start() {
+            Type = "player";
         }
-        base.FixedUpdate();
+        
+    new void FixedUpdate()
+        {
+            if (entity == null) {
+                Debug.Log("null entity");
+            }
+            base.FixedUpdate();
+        }
+
+        public void Message(Dictionary<string, dynamic> msg) {
+            Master.Message(msg);
+        }
     }
 
-    public void Message(Dictionary<string, dynamic> msg) {
-        Master.Message(msg);
-    }
 }
-

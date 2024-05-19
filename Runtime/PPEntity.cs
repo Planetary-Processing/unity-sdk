@@ -1,51 +1,53 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Planetary;
 
-[AddComponentMenu("PP/Entity")]
-public class PPEntity : MonoBehaviour
-{
-    protected Entity entity;
-    public string Type;
-    public bool useServerPosition = true;
+namespace Planetary {
 
-    [HideInInspector] public PPMaster Master;
-    [HideInInspector] public string UUID;
-
-
-    // Start is called before the first frame update
-    void Start()
+    [AddComponentMenu("PP/Entity")]
+    public class PPEntity : MonoBehaviour
     {
-        entity = Master.GetEntity(UUID);
-        updatePosition();
-    }
+        protected Entity entity;
+        public string Type;
+        public bool useServerPosition = true;
 
-    // Update is called once per frame
-    protected void FixedUpdate()
-    {
-        entity = Master.GetEntity(UUID);
-        if (useServerPosition) { updatePosition(); };
-    }
+        [HideInInspector] public PPMaster Master;
+        [HideInInspector] public string UUID;
 
-    private void updatePosition() {
-        if (entity != null) {
-            transform.position = GetServerPosition();
+
+        // Start is called before the first frame update
+        void Start()
+        {
+            entity = Master.GetEntity(UUID);
+            updatePosition();
         }
-    }
 
-    public Vector3 GetServerPosition() {
-        if (entity == null) {
-            return new Vector3();
+        // Update is called once per frame
+        protected void FixedUpdate()
+        {
+            entity = Master.GetEntity(UUID);
+            if (useServerPosition) { updatePosition(); };
         }
-        return new Vector3((float)entity.x, (float)entity.z, (float)entity.y);
-    }
 
-    public Dictionary<string, dynamic> GetServerData() {
-        if (entity == null) {
-            return new Dictionary<string, dynamic>();
+        private void updatePosition() {
+            if (entity != null) {
+                transform.position = GetServerPosition();
+            }
         }
-        return entity.data;
-    }
 
+        public Vector3 GetServerPosition() {
+            if (entity == null) {
+                return new Vector3();
+            }
+            return new Vector3((float)entity.x, (float)entity.z, (float)entity.y);
+        }
+
+        public Dictionary<string, dynamic> GetServerData() {
+            if (entity == null) {
+                return new Dictionary<string, dynamic>();
+            }
+            return entity.data;
+        }
+
+    }
 }
