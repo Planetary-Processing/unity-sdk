@@ -11,18 +11,16 @@ namespace Planetary {
         public string Type;
         public bool useServerPosition = true;
 
-        [HideInInspector] public PPMaster Master;
+        [HideInInspector] public PPPlayer Master;
         [HideInInspector] public string UUID;
 
 
-        // Start is called before the first frame update
-        void Start()
+        protected void Start()
         {
             entity = Master.GetEntity(UUID);
             updatePosition();
         }
 
-        // Update is called once per frame
         protected void FixedUpdate()
         {
             entity = Master.GetEntity(UUID);
