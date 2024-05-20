@@ -46,6 +46,5 @@ namespace Planetary {
             }
             return entity.data;
         }
-
     }
 }
