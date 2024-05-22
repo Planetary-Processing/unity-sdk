@@ -8,11 +8,11 @@ namespace Planetary {
     public class PPEntity : MonoBehaviour
     {
         protected Entity entity;
-        public string Type;
+        internal string Type;
         public bool useServerPosition = true;
 
-        [HideInInspector] public PPPlayer Master;
-        [HideInInspector] public string UUID;
+        internal PPMaster Master;
+        internal string UUID;
 
 
         protected void Start()
@@ -31,6 +31,10 @@ namespace Planetary {
             if (entity != null) {
                 transform.position = GetServerPosition();
             }
+        }
+
+        public string GetUUID() {
+            return UUID;
         }
 
         public Vector3 GetServerPosition() {

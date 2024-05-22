@@ -5,10 +5,11 @@ using UnityEditor;
 
 namespace Planetary {
 
-    [AddComponentMenu("PP/Player")]
-    public class PPPlayer : PPEntity
+    [AddComponentMenu("PP/Master")]
+    public class PPMaster : MonoBehaviour
     {
         private SDK sdk;
+        public GameObject Player;
         public GameObject[] Prefabs;
         private Dictionary<string, GameObject> PrefabMap = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject> Entities = new Dictionary<string, GameObject>();
@@ -24,7 +25,7 @@ namespace Planetary {
                 PrefabMap[sse.Type] = pf;
             }
             sdk = new SDK(GameID);
-            Master = this;
+            Player.GetComponent<PPEntity>().Master = this;
         }
 
         public void Init(string username, string password) {
@@ -47,16 +48,18 @@ namespace Planetary {
             sdk.Update();
             foreach ((string uuid, Entity e) in sdk.entities) {
                 if (!Entities.ContainsKey(uuid)) {
+                    GameObject g;
                     if (sdk.UUID == uuid) { 
-                        UUID = uuid;
-                        Entities[sdk.UUID] = this.gameObject;
+                        g = Player;
                     } else if (PrefabMap.ContainsKey(e.type)) {
-                        GameObject g = Instantiate(PrefabMap[e.type]);
-                        Entities[uuid] = g;
-                        PPEntity ppe = g.GetComponent<PPEntity>();
-                        ppe.UUID = uuid;
-                        ppe.Master = this;
+                        g = Instantiate(PrefabMap[e.type]);
+                    } else {
+                        continue;
                     }
+                    Entities[uuid] = g;
+                    PPEntity ppe = g.GetComponent<PPEntity>();
+                    ppe.UUID = uuid;
+                    ppe.Master = this;
                 }
             }
             
