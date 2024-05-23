@@ -1,5 +1,6 @@
-# Planetary Processing SDK
+# Planetary Processing Unity SDK
 
-Website: [planetaryprocessing.io](https://planetaryprocessing.io/)
+SDK for using Planetary Processing's distributed simulation platform with Unity.
 
-Docs in progress!
+# Full Documentation
+Available at [docs.planetaryprocessing.io](https://docs.planetaryprocessing.io/).
