@@ -8,7 +8,7 @@ namespace Planetary {
     public class PPEntity : MonoBehaviour
     {
         protected Entity entity;
-        internal string Type;
+        public string Type;
         public bool useServerPosition = true;
 
         internal PPMaster Master;
