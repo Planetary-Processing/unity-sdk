@@ -12,7 +12,7 @@ namespace Planetary {
         public bool useServerPosition = true;
 
         internal PPMaster Master;
-        internal string UUID;
+        internal string UUID  = "";
 
 
         protected void Start()
