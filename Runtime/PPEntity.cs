@@ -29,7 +29,8 @@ namespace Planetary {
 
         private void updatePosition() {
             if (entity != null) {
-                transform.position = GetServerPosition();
+                Vector3 pos = GetServerPosition();
+                transform.position = new Vector3(pos.x, pos.z, pos.y);
             }
         }
 
@@ -41,7 +42,7 @@ namespace Planetary {
             if (entity == null) {
                 return new Vector3();
             }
-            return new Vector3((float)entity.x, (float)entity.z, (float)entity.y);
+            return new Vector3((float)entity.x, (float)entity.y, (float)entity.z);
         }
 
         public Dictionary<string, dynamic> GetServerData() {
