@@ -18,7 +18,7 @@ namespace Planetary {
     public double x;
     public double y;
     public double z;
-    public Dictionary<string, dynamic> data;
+    public Dictionary<string, object> data;
     public string dataJSON;
     public string type;
   }
@@ -31,14 +31,14 @@ namespace Planetary {
     private NetworkStream stream = null;
     private StreamReader sr = null;
     private Thread thread;
-    private Action<Dictionary<string, dynamic>> onEvent;
+    private Action<Dictionary<string, object>> onEvent;
     private Channel<Packet> channel = Channel.CreateUnbounded<Packet>();
     private Mutex m = new Mutex();
     public readonly Dictionary<string, Entity> entities = new Dictionary<string, Entity>();
     private RC4 inp;
     private RC4 oup;
 
-    public SDK(ulong gameid, string token, Action<Dictionary<string, dynamic>> callback) {
+    public SDK(ulong gameid, string token, Action<Dictionary<string, object>> callback) {
       gameID = gameid;
     }
 
@@ -117,7 +117,7 @@ namespace Planetary {
       return connected;
     }
 
-    public void Message(Dictionary<String, dynamic> msg) {
+    public void Message(Dictionary<String, object> msg) {
       var s = JsonSerializer.Serialize(msg);
       send(new Packet{Arbitrary = s});
     }
@@ -215,7 +215,7 @@ namespace Planetary {
         System.Convert.ToBase64String(oup.Apply(p.ToByteArray())) + "\n");
     }
 
-    private object ConvertToVariant(dynamic value) {
+    private object ConvertToVariant(JsonElement value) {
       switch (value.ValueKind) {
         case JsonValueKind.True:
           return true;
@@ -226,7 +226,7 @@ namespace Planetary {
         case JsonValueKind.String:
           return value.GetString();
         case JsonValueKind.Object:
-          var gdDict = new Dictionary<string, dynamic>();
+          var gdDict = new Dictionary<string, object>();
           foreach (var kvp in value.EnumerateObject()) {
             gdDict[kvp.Name] = ConvertToVariant(kvp.Value);
           }
@@ -236,8 +236,8 @@ namespace Planetary {
           }
         }
         
-    private Dictionary<string, dynamic> ConvertToVariantDictionary(Dictionary<string, dynamic> dict) {
-      var gdDict = new Dictionary<string, dynamic>();
+    private Dictionary<string, object> ConvertToVariantDictionary(Dictionary<string, JsonElement> dict) {
+      var gdDict = new Dictionary<string, object>();
       foreach (var kvp in dict)
       {
         gdDict[kvp.Key] = ConvertToVariant(kvp.Value);
@@ -246,8 +246,8 @@ namespace Planetary {
     }
 
 
-    private Dictionary<String, dynamic> decodeEvent(string e) {
-        return ConvertToVariantDictionary(JsonSerializer.Deserialize<Dictionary<String, object>>(e));
+    private Dictionary<String, object> decodeEvent(string e) {
+        return ConvertToVariantDictionary(JsonSerializer.Deserialize<Dictionary<String, JsonElement>>(e));
       }
     }
 }
