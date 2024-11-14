@@ -89,7 +89,7 @@ namespace Planetary {
             return new List<Entity>(sdk.entities.Values);
         }
 
-        public void Message(Dictionary<string, dynamic> msg) {
+        public void Message(Dictionary<string, object> msg) {
             if (!sdk.IsConnected()) {
                 return;
             }
