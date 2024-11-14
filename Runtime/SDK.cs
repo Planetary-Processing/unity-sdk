@@ -18,7 +18,7 @@ namespace Planetary {
     public double x;
     public double y;
     public double z;
-    public Dictionary<string, dynamic> data;
+    public Dictionary<string, object> data;
     public string dataJSON;
     public string type;
   }
@@ -215,8 +215,39 @@ namespace Planetary {
         System.Convert.ToBase64String(oup.Apply(p.ToByteArray())) + "\n");
     }
 
-    private Dictionary<String, dynamic> decodeEvent(string e) {
-      return JsonSerializer.Deserialize<Dictionary<String, dynamic>>(e);
+    private object ConvertToVariant(dynamic value) {
+      switch (value.ValueKind) {
+        case JsonValueKind.True:
+          return true;
+        case JsonValueKind.False:
+          return false;
+        case JsonValueKind.Number:
+          return value.GetDouble();
+        case JsonValueKind.String:
+          return value.GetString();
+        case JsonValueKind.Object:
+          var gdDict = new Dictionary<string, dynamic>();
+          foreach (var kvp in value.EnumerateObject()) {
+            gdDict[kvp.Name] = ConvertToVariant(kvp.Value);
+          }
+          return gdDict;
+        default:
+          return null;
+          }
+        }
+        
+    private Dictionary<string, dynamic> ConvertToVariantDictionary(Dictionary<string, dynamic> dict) {
+      var gdDict = new Dictionary<string, dynamic>();
+      foreach (var kvp in dict)
+      {
+        gdDict[kvp.Key] = ConvertToVariant(kvp.Value);
+      }
+      return gdDict;
     }
-  }
+
+
+    private Dictionary<String, object> decodeEvent(string e) {
+        return ConvertToVariantDictionary(JsonSerializer.Deserialize<Dictionary<String, object>>(e));
+      }
+    }
 }

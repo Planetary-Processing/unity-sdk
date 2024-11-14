@@ -45,9 +45,9 @@ namespace Planetary {
             return new Vector3((float)entity.x, (float)entity.y, (float)entity.z);
         }
 
-        public Dictionary<string, dynamic> GetServerData() {
+        public Dictionary<string, object> GetServerData() {
             if (entity == null) {
-                return new Dictionary<string, dynamic>();
+                return new Dictionary<string, object>();
             }
             return entity.data;
         }

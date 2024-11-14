@@ -1,6 +1,6 @@
 {
 	"name":"io.planetaryprocessing.ppsdk",
-	"version":"2.0.1",
+	"version":"2.0.2",
 	"displayName":"Planetary Processing SDK",
 	"description":"SDK for using Planetary Processing's multiplayer gaming service with Unity.",
 	"type":"tool",
