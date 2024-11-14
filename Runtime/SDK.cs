@@ -18,7 +18,7 @@ namespace Planetary {
     public double x;
     public double y;
     public double z;
-    public Dictionary<string, object> data;
+    public Dictionary<string, dynamic> data;
     public string dataJSON;
     public string type;
   }
@@ -246,7 +246,7 @@ namespace Planetary {
     }
 
 
-    private Dictionary<String, object> decodeEvent(string e) {
+    private Dictionary<String, dynamic> decodeEvent(string e) {
         return ConvertToVariantDictionary(JsonSerializer.Deserialize<Dictionary<String, object>>(e));
       }
     }
