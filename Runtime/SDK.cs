@@ -23,6 +23,13 @@ namespace Planetary {
     public string type;
   }
 
+  public class Chunk {
+    public ulong id;
+    public long x;
+    public long y;
+    public Dictionary<string, object> data;
+  }
+
   public class SDK {
 
     private ulong gameID;
@@ -31,15 +38,16 @@ namespace Planetary {
     private NetworkStream stream = null;
     private StreamReader sr = null;
     private Thread thread;
-    private Action<Dictionary<string, object>> onEvent;
+    private Action<Chunk> chunkCallback;
     private Channel<Packet> channel = Channel.CreateUnbounded<Packet>();
     private Mutex m = new Mutex();
     public readonly Dictionary<string, Entity> entities = new Dictionary<string, Entity>();
     private RC4 inp;
     private RC4 oup;
 
-    public SDK(ulong gameid, string token, Action<Dictionary<string, object>> callback) {
+    public SDK(ulong gameid, Action<Chunk> chunkCallback) {
       gameID = gameid;
+      this.chunkCallback = chunkCallback;
     }
 
     public SDK(ulong gameid) {
@@ -150,6 +158,16 @@ namespace Planetary {
       }
       if (packet.Delete != null) {
         entities.Remove(packet.Delete.EntityID);
+      }
+      if (packet.Chunk != null) {
+        if (chunkCallback != null) {
+          chunkCallback.Invoke(new Chunk{
+            id = packet.Chunk.ID,
+            x = packet.Chunk.X,
+            y = packet.Chunk.Y,
+            data = decodeEvent(packet.Chunk.Data)
+          });
+        }
       }
     }
 

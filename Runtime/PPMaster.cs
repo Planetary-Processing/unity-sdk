@@ -10,10 +10,13 @@ namespace Planetary {
     {
         private SDK sdk;
         public GameObject Player;
+        public GameObject ChunkPrefab;
         public GameObject[] Prefabs;
         private Dictionary<string, GameObject> PrefabMap = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject> Entities = new Dictionary<string, GameObject>();
+        private Dictionary<ulong, GameObject> Chunks = new Dictionary<ulong, GameObject>();
         public ulong GameID;
+        public uint ChunkSize;
 
         void Awake()
         {
@@ -24,7 +27,7 @@ namespace Planetary {
                 }
                 PrefabMap[sse.Type] = pf;
             }
-            sdk = new SDK(GameID);
+            sdk = new SDK(GameID, HandleChunk);
             Player.GetComponent<PPEntity>().Master = this;
         }
 
@@ -39,7 +42,35 @@ namespace Planetary {
             sdk.Join();
         }
 
-        void Update()
+        private void HandleChunk(Chunk cnk) {
+            if (ChunkPrefab == null) return;
+            if (Chunks.ContainsKey(cnk.id)) {
+                PPChunk ppchunk = Chunks[cnk.id].GetComponent<PPChunk>();
+                ppchunk.data = cnk.data;
+            } else {
+                GameObject go = Instantiate(ChunkPrefab);
+                go.transform.position = new Vector3(cnk.x*ChunkSize, 0, cnk.y*ChunkSize);
+                PPChunk ppchunk = go.GetComponent<PPChunk>();
+                ppchunk.data = cnk.data;
+                ppchunk.id = cnk.id;
+                ppchunk.x = cnk.x;
+                ppchunk.y = cnk.y;
+                Chunks[cnk.id] = go;
+            }
+            List<ulong> toRemove = new List<ulong>();
+            foreach ((ulong id, GameObject other) in Chunks) {
+                PPChunk ppchunk = other.GetComponent<PPChunk>();
+                if (Mathf.Abs(ppchunk.x-cnk.x) > 3 || Mathf.Abs(ppchunk.y-cnk.y) > 3) {
+                    Destroy(other);
+                    toRemove.Add(id);
+                }
+            }
+            foreach (ulong id in toRemove) {
+                Chunks.Remove(id);
+            }
+        }
+
+        void FixedUpdate()
         {
             if (!sdk.IsConnected()) {
                 return;
