@@ -156,7 +156,7 @@ namespace Planetary {
           });
         }
       }
-      if (packet.Delete != null) {
+      if (packet.Delete != null && packet.Delete.EntityID != UUID) {
         entities.Remove(packet.Delete.EntityID);
       }
       if (packet.Chunk != null) {
