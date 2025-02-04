@@ -17,6 +17,7 @@ namespace Planetary {
         private Dictionary<ulong, GameObject> Chunks = new Dictionary<ulong, GameObject>();
         public ulong GameID;
         public uint ChunkSize;
+        public bool TwoDimensions = false;
 
         void Awake()
         {
@@ -49,7 +50,12 @@ namespace Planetary {
                 ppchunk.data = cnk.data;
             } else {
                 GameObject go = Instantiate(ChunkPrefab);
-                go.transform.position = new Vector3(cnk.x*ChunkSize, 0, cnk.y*ChunkSize);
+                if (TwoDimensions) {
+                    go.transform.position = new Vector3(cnk.x*ChunkSize, cnk.y*ChunkSize, 0);
+
+                } else {
+                    go.transform.position = new Vector3(cnk.x*ChunkSize, 0, cnk.y*ChunkSize);
+                }
                 PPChunk ppchunk = go.GetComponent<PPChunk>();
                 ppchunk.data = cnk.data;
                 ppchunk.id = cnk.id;

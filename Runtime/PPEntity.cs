@@ -30,7 +30,11 @@ namespace Planetary {
         private void updatePosition() {
             if (entity != null) {
                 Vector3 pos = GetServerPosition();
-                transform.position = new Vector3(pos.x, pos.z, pos.y);
+                if (Master.TwoDimensions) {
+                   transform.position = new Vector3(pos.x, pos.y, pos.z);
+                } else {
+                   transform.position = new Vector3(pos.x, pos.z, pos.y);
+                }
             }
         }
 
