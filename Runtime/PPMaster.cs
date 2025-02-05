@@ -122,7 +122,7 @@ namespace Planetary {
             return sdk.entities[uuid];
         }
 
-        public List<Entity> GetEntities(string uuid) {
+        public List<Entity> GetEntities() {
             return new List<Entity>(sdk.entities.Values);
         }
 
