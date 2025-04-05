@@ -1,16 +1,16 @@
-using System;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Google.Protobuf;
 using System.Threading;
 using System.Threading.Channels;
-using RC4Cryptography;
+using System.Net.WebSockets;
+
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.IO;
+using System.Linq;
 
 namespace Planetary {
   public class Entity {
@@ -35,15 +35,14 @@ namespace Planetary {
     private ulong gameID;
     private bool connected = false;
     public string UUID;
-    private NetworkStream stream = null;
-    private StreamReader sr = null;
     private Thread thread;
     private Action<Chunk> chunkCallback;
     private Channel<Packet> channel = Channel.CreateUnbounded<Packet>();
     private Mutex m = new Mutex();
     public readonly Dictionary<string, Entity> entities = new Dictionary<string, Entity>();
-    private RC4 inp;
-    private RC4 oup;
+
+
+    private ClientWebSocket client;
 
     public SDK(ulong gameid, Action<Chunk> chunkCallback) {
       gameID = gameid;
@@ -55,57 +54,60 @@ namespace Planetary {
     }
 
     public void Connect(string username, string password) {
-      UUID = init(username, password, gameID);
+      
+      Thread t = new Thread(() => {
+        Task t = init(username, password, gameID);
+        t.Wait();
+    });
+      t.Start();
+      t.Join();
     }
 
-    private string init(string email, string password, ulong gameID) {
-      string uuid = "";
+    private async Task init(string email, string password, ulong gameID) {
       try {
-        var body = new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {GameID = gameID, Username = email, Password = password})));
-        HttpClient client = new HttpClient();
-        client.BaseAddress = new Uri("https://api.planetaryprocessing.io/");
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        HttpResponseMessage response = client.PostAsync("/_api/golang.planetaryprocessing.io/apis/httputils/HTTPUtils/GetKey", body).Result;
-        Byte[] key;
-        if (response.IsSuccessStatusCode) {
-          Dictionary<String, String> data = JsonSerializer.Deserialize<Dictionary<String, String>>(response.Content.ReadAsStringAsync().Result);
-          key = System.Convert.FromBase64String(data["Key"]);
-          uuid = data["UUID"];
-        } else {
-          throw new Exception("countn't get key, auth request failed");
-        }
-        inp = new RC4(key);
-        oup = new RC4(key);
-        IPHostEntry ipHostInfo = Dns.GetHostEntry("planetaryprocessing.io");
-        IPAddress ipAddress = ipHostInfo.AddressList[0];
-        Socket socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-        socket.Connect(ipAddress, 42);
-        stream = new NetworkStream(socket);
+        client = new ClientWebSocket();
+
+        // Setting the Origin header for authentication
+        client.Options.SetRequestHeader("Origin", "https://planetaryprocessing.io\r\n");
+
+        Console.WriteLine("confirm auth params:'"+ email+"', '"+ password+"', '" + gameID+"'");
+
+        // First connection
+        var websocketUri = "wss://planetaryprocessing.io/_ws";
+        await client.ConnectAsync(new Uri(websocketUri), CancellationToken.None);
+        connected = true;
+
+        // Creating a Login message using Protobuf
         var login = new Login {
-          UUID = uuid,
-          GameID = gameID
+          GameID = gameID,
+          Email = email,
+          Password = password
         };
-        Byte[] dat = encodeLogin(login);
-        stream.Write(dat, 0, dat.Length);
-        sr = new StreamReader(stream, Encoding.UTF8);
-        string line = sr.ReadLine();
-        Login resp = decodeLogin(line);
-        if (resp.UUID != uuid) {
-          throw new Exception("auth failed");
+        // Serializing the Login message to a byte array & send to server
+        Byte[] dat = login.ToByteArray();
+        await client.SendAsync(new ArraySegment<byte>(dat), WebSocketMessageType.Text, true, CancellationToken.None);
+        // Wait for response and get the UUID from the message
+        byte[] buffer = new byte[1024 * 4];
+        WebSocketReceiveResult result = await client.ReceiveAsync(buffer, CancellationToken.None);
+        if (result.MessageType == WebSocketMessageType.Text) {
+          var uuid = Login.Parser.ParseFrom(buffer.Take(result.Count).ToArray()); // retrieve login message ({"UUID" : "....."})
+          UUID = uuid.UUID;
+          if (string.IsNullOrEmpty(UUID))
+            {
+                throw new OperationCanceledException("Connection denied: game offline.");
+            }
         }
-        Console.WriteLine("...");
+        Console.WriteLine("Websocket connected & authenticated");
         thread = new Thread(new ThreadStart(recv));
         thread.Start();
-        Thread.Sleep(1000);
-        connected = true;
+        Thread.Sleep(1000); // buffer time for connection lag(?)
+        
       } catch (Exception e) {
-        if (sr != null) {
-          sr.Dispose();
-        }
+        Console.WriteLine("error" + e);
         connected = false;
         throw e;
       }
-      return uuid;
+
     }
 
     public void Join() {
@@ -134,6 +136,7 @@ namespace Planetary {
       send(new Packet{Leave = true});
     }
 
+    // Decodes and formats a packet coming
     private void handlePacket(Packet packet) {
       if (packet.Update != null) {
         Entity e = null;
@@ -171,68 +174,77 @@ namespace Planetary {
       }
     }
 
-    private void send(Packet packet) {
+    private async void send(Packet packet) {
       if ( connected == false ) {
          throw new Exception("send called before connection is established");
       }
       m.WaitOne();
-      // perhaps an automatic re-init would be useful here
       try {
-        Byte[] bts = encodePacket(packet);
-        stream.Write(bts, 0, bts.Length);
+        await client.SendAsync(new ArraySegment<byte>(encodePacket(packet)), WebSocketMessageType.Text, true, CancellationToken.None);
+        
       } catch (Exception e) {
         Console.WriteLine(e.ToString());
-        if (sr != null) {
-          sr.Dispose();
-        }
         connected = false;
       } finally {
-        m.ReleaseMutex();
+        m.ReleaseMutex(); 
       }
     }
 
-    private void recv() {
+
+    // Thread for getting comms from server
+    private async void recv() {
       try {
-        while (true) {
-          string line;
-          while ((line = sr.ReadLine()) != null) {
-            if (!channel.Writer.TryWrite(decodePacket(line))) {
-              throw new Exception("failed to read packet");
+        byte[] buffer = new byte[1024 * 4096]; // 4MB is max size
+        while (connected) {
+          // Get comms 
+          WebSocketReceiveResult result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+          // check if conn closed and break receive loop if so
+          if (result.CloseStatus.HasValue)
+          {
+              Console.WriteLine("WebSocket Disconnected");
+              await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Acknowledged Close", CancellationToken.None);
+              connected = false;
+              break; // Exit the loop as the connection is closed
+          } else { // cnxn still up
+            try
+              {
+                string receivedMessage = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
+                Packet packet = decodePacket(receivedMessage);
+                channel.Writer.TryWrite(packet);
+            }
+            catch (Exception e) {
+              Console.WriteLine(e);
             }
           }
+      
         }
       } catch (Exception e) {
-        Console.WriteLine(e.ToString());
-        if (sr != null) {
-          sr.Dispose();
-        }
+        Console.WriteLine($"Error in receive thread: {e.ToString()}");
         connected = false;
+      } finally {
+        // On error, close cnxn properly
+        if (client != null && (client.State == WebSocketState.Open || client.State == WebSocketState.CloseSent)) {
+          await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing due to error", CancellationToken.None);
+        }
       }
     }
 
-    private Login decodeLogin(string s) {
-      Byte[] bts = System.Convert.FromBase64String(s);
-      Login pckt = Login.Parser.ParseFrom(bts);
-      return pckt;
-    }
-
+    // Decodes a base64 encoded string into a Packet object
     private Packet decodePacket(string s) {
       Byte[] bts = System.Convert.FromBase64String(s);
-      bts = inp.Apply(bts);
       Packet pckt = Packet.Parser.ParseFrom(bts);
       return pckt;
     }
 
-    private Byte[] encodeLogin(Login l) {
-      return Encoding.UTF8.GetBytes(
-        System.Convert.ToBase64String(l.ToByteArray()) + "\n");
-    }
-
+    // Encodes a Packet object into a base64 string with a newline character
     private Byte[] encodePacket(Packet p) {
       return Encoding.UTF8.GetBytes(
-        System.Convert.ToBase64String(oup.Apply(p.ToByteArray())) + "\n");
+        System.Convert.ToBase64String(p.ToByteArray()) + "\n");
     }
 
+
+    // Converts a JsonElement to a variant type (object)
     private object ConvertToVariant(JsonElement value) {
       switch (value.ValueKind) {
         case JsonValueKind.True:
@@ -262,6 +274,8 @@ namespace Planetary {
           }
         }
         
+
+    // Converts a dictionary of JsonElements to a dictionary of variant types (objects)
     private Dictionary<string, object> ConvertToVariantDictionary(Dictionary<string, JsonElement> dict) {
       var gdDict = new Dictionary<string, object>();
       foreach (var kvp in dict)
@@ -271,7 +285,7 @@ namespace Planetary {
       return gdDict;
     }
 
-
+    // Decodes a JSON string into a dictionary of string to object
     private Dictionary<String, object> decodeEvent(string e) {
         return ConvertToVariantDictionary(JsonSerializer.Deserialize<Dictionary<String, JsonElement>>(e));
       }
