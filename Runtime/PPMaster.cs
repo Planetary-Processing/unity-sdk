@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System.Threading.Tasks;
+using System.Threading;
+using System;
 
 namespace Planetary {
 
@@ -32,13 +35,14 @@ namespace Planetary {
             Player.GetComponent<PPEntity>().Master = this;
         }
 
-        public void Init(string username, string password) {
+        public void Init(string username, string password, float timeout = 5000f)
+        {
             sdk.Connect(username, password);
         }
 
         public void Join() {
             if (!sdk.IsConnected()) {
-                Debug.LogError("must connect before joining");
+                Debug.LogError("Joining failed. Client not connected to Planetary Processing servers.");
             }
             sdk.Join();
         }
@@ -131,6 +135,10 @@ namespace Planetary {
                 return;
             }
             sdk.Message(msg);
+        }
+
+        public bool IsConnected(){
+            return sdk.IsConnected();
         }
     }
 
