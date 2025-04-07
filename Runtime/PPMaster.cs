@@ -140,6 +140,16 @@ namespace Planetary {
         public bool IsConnected(){
             return sdk.IsConnected();
         }
+
+        void OnApplicationQuit()
+        {
+            if (sdk != null && sdk.IsConnected())
+            {
+                sdk.Logout();
+                Debug.Log("Player Disconnected");
+            }
+        }
     }
+
 
 }
