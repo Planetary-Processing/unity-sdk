@@ -37,12 +37,19 @@ namespace Planetary {
     public string UUID;
     private Thread thread;
     private Action<Chunk> chunkCallback;
+    private  Action<Dictionary<String, object>> eventCallback;
     private Channel<Packet> channel = Channel.CreateUnbounded<Packet>();
     private Mutex m = new Mutex();
     public readonly Dictionary<string, Entity> entities = new Dictionary<string, Entity>();
 
 
     private ClientWebSocket client;
+
+    public SDK(ulong gameid, Action<Chunk> chunkCallback, Action<Dictionary<String, object>> eventCallback) {
+      gameID = gameid;
+      this.chunkCallback = chunkCallback;
+      this.eventCallback = eventCallback;
+    }
 
     public SDK(ulong gameid, Action<Chunk> chunkCallback) {
       gameID = gameid;
@@ -172,7 +179,12 @@ namespace Planetary {
           });
         }
       }
+      if (!string.IsNullOrEmpty(packet.Event) ){
+        eventCallback?.Invoke(decodeEvent(packet.Event));
+      }
     }
+
+    
 
     private async void send(Packet packet) {
       if ( connected == false ) {

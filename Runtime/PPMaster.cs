@@ -21,6 +21,7 @@ namespace Planetary {
         public ulong GameID;
         public uint ChunkSize;
         public bool TwoDimensions = false;
+        public GameObject eventCallbackObject;
 
         void Awake()
         {
@@ -31,9 +32,14 @@ namespace Planetary {
                 }
                 PrefabMap[sse.Type] = pf;
             }
-            sdk = new SDK(GameID, HandleChunk);
+            var callbackComponent = eventCallbackObject.GetComponent<MonoBehaviour>();
+            Action<Dictionary<String, object>> eventCallback = (Action<Dictionary<String, object>>)Delegate.CreateDelegate(
+                typeof(Action<Dictionary<String, object>>), callbackComponent, "eventCallback");
+            
+            sdk = new SDK(GameID, HandleChunk, eventCallback);
             Player.GetComponent<PPEntity>().Master = this;
         }
+
 
         public void Init(string username, string password, float timeout = 5000f)
         {
@@ -150,6 +156,4 @@ namespace Planetary {
             }
         }
     }
-
-
 }
