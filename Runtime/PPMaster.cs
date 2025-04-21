@@ -22,9 +22,12 @@ namespace Planetary {
         public uint ChunkSize;
         public bool TwoDimensions = false;
         public GameObject eventCallbackObject;
+        private bool dcAlerted = false; 
 
         void Awake()
         {
+            Application.runInBackground = true; // to prevent websockets timing out when unfocused
+
             foreach (GameObject pf in Prefabs) {
                 PPEntity sse = pf.GetComponent<PPEntity>();
                 if (sse == null) {
@@ -44,6 +47,7 @@ namespace Planetary {
         public void Init(string username, string password, float timeout = 5000f)
         {
             sdk.Connect(username, password);
+            dcAlerted = false;
         }
 
         public void Join() {
@@ -89,6 +93,10 @@ namespace Planetary {
         void FixedUpdate()
         {
             if (!sdk.IsConnected()) {
+                if (!dcAlerted) {
+                    Debug.LogError("Connection to server lost");
+                    dcAlerted = true;
+                }
                 return;
             }
             

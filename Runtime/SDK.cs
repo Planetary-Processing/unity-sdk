@@ -105,9 +105,10 @@ namespace Planetary {
             }
         }
         Console.WriteLine("Websocket connected & authenticated");
-        thread = new Thread(new ThreadStart(recv));
-        thread.Start();
-        Thread.Sleep(1000); // buffer time for connection lag(?)
+
+        Task.Run(async () => {
+            recv();
+        });
         
       } catch (Exception e) {
         Console.WriteLine("error" + e);
@@ -141,6 +142,8 @@ namespace Planetary {
 
     public void Logout() {
       send(new Packet{Leave = true});
+      Console.WriteLine("Client disconnected from server");
+      connected = false;
     }
 
     // Decodes and formats a packet coming
@@ -204,29 +207,33 @@ namespace Planetary {
 
 
     // Thread for getting comms from server
-    private async void recv() {
+    private async Task recv() {
       try {
         byte[] buffer = new byte[1024 * 4096]; // 4MB is max size
         while (connected) {
           // Get comms 
-          WebSocketReceiveResult result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+          using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10))) {
+              WebSocketReceiveResult result = await client.ReceiveAsync(
+                  new ArraySegment<byte>(buffer), cts.Token);
+          
 
-          // check if conn closed and break receive loop if so
-          if (result.CloseStatus.HasValue)
-          {
-              Console.WriteLine("WebSocket Disconnected");
-              await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Acknowledged Close", CancellationToken.None);
-              connected = false;
-              break; // Exit the loop as the connection is closed
-          } else { // cnxn still up
-            try
-              {
-                string receivedMessage = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
-                Packet packet = decodePacket(receivedMessage);
-                channel.Writer.TryWrite(packet);
-            }
-            catch (Exception e) {
-              Console.WriteLine(e);
+            // check if conn closed and break receive loop if so
+            if (result.CloseStatus.HasValue)
+            {
+                Console.WriteLine("WebSocket Disconnected");
+                await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Acknowledged Close", CancellationToken.None);
+                connected = false;
+                break; // Exit the loop as the connection is closed
+            } else { // cnxn still up
+              try
+                {
+                  string receivedMessage = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
+                  Packet packet = decodePacket(receivedMessage);
+                  channel.Writer.TryWrite(packet);
+              }
+              catch (Exception e) {
+                Console.WriteLine(e);
+              }
             }
           }
       
@@ -238,6 +245,7 @@ namespace Planetary {
         // On error, close cnxn properly
         if (client != null && (client.State == WebSocketState.Open || client.State == WebSocketState.CloseSent)) {
           await client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing due to error", CancellationToken.None);
+          connected = false;
         }
       }
     }
