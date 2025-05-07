@@ -35,11 +35,15 @@ namespace Planetary {
                 }
                 PrefabMap[sse.Type] = pf;
             }
-            var callbackComponent = eventCallbackObject.GetComponent<MonoBehaviour>();
-            Action<Dictionary<String, object>> eventCallback = (Action<Dictionary<String, object>>)Delegate.CreateDelegate(
-                typeof(Action<Dictionary<String, object>>), callbackComponent, "eventCallback");
-            
-            sdk = new SDK(GameID, HandleChunk, eventCallback);
+            if (eventCallbackObject) {
+                var callbackComponent = eventCallbackObject.GetComponent<MonoBehaviour>();
+                Action<Dictionary<String, object>> eventCallback = (Action<Dictionary<String, object>>)Delegate.CreateDelegate(
+                    typeof(Action<Dictionary<String, object>>), callbackComponent, "eventCallback");
+                
+                sdk = new SDK(GameID, HandleChunk, eventCallback);
+            } else {
+                sdk = new SDK(GameID, HandleChunk);
+            }
             Player.GetComponent<PPEntity>().Master = this;
         }
 
