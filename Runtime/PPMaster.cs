@@ -21,7 +21,7 @@ namespace Planetary {
         public ulong GameID;
         public uint ChunkSize;
         public bool TwoDimensions = false;
-        public GameObject eventCallbackObject;
+        public GameObject ServerToClientObject;
         private bool dcAlerted = false; 
 
         void Awake()
@@ -35,10 +35,10 @@ namespace Planetary {
                 }
                 PrefabMap[sse.Type] = pf;
             }
-            if (eventCallbackObject) {
-                var callbackComponent = eventCallbackObject.GetComponent<MonoBehaviour>();
+            if (ServerToClientObject) {
+                var callbackComponent = ServerToClientObject.GetComponent<MonoBehaviour>();
                 Action<Dictionary<String, object>> eventCallback = (Action<Dictionary<String, object>>)Delegate.CreateDelegate(
-                    typeof(Action<Dictionary<String, object>>), callbackComponent, "eventCallback");
+                    typeof(Action<Dictionary<String, object>>), callbackComponent, "ServerToClient");
                 
                 sdk = new SDK(GameID, HandleChunk, eventCallback);
             } else {
