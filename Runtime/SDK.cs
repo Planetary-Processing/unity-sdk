@@ -106,9 +106,9 @@ namespace Planetary {
         }
         Console.WriteLine("Websocket connected & authenticated");
 
-        Task.Run(async () => {
-            recv();
-        });
+        thread = new Thread(new ThreadStart(recv));
+        thread.Start();
+        Thread.Sleep(1000); // buffer time for connection lag(?)
         
       } catch (Exception e) {
         Console.WriteLine("error" + e);
@@ -207,7 +207,7 @@ namespace Planetary {
 
 
     // Thread for getting comms from server
-    private async Task recv() {
+    private async void recv() {
       try {
         byte[] buffer = new byte[1024 * 4096]; // 4MB is max size
         while (connected) {
