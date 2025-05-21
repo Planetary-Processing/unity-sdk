@@ -4,5 +4,8 @@
 	"displayName":"Planetary Processing SDK",
 	"description":"SDK for using Planetary Processing's multiplayer gaming service with Unity.",
 	"type":"tool",
-	"author": "Planetary Processing Ltd"
+	"author": "Planetary Processing Ltd",
+	"dependencies": {
+		 "com.unity.nuget.newtonsoft-json": "3.0.2"
+	}
 }
