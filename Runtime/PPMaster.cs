@@ -1,13 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
-using System.Threading.Tasks;
-using System.Threading;
 using System;
+using System.Threading;
 
-namespace Planetary {
 
+namespace Planetary
+{
     [AddComponentMenu("PP/Master")]
     public class PPMaster : MonoBehaviour
     {
@@ -22,31 +21,38 @@ namespace Planetary {
         public uint ChunkSize;
         public bool TwoDimensions = false;
         public GameObject ServerToClientObject;
-        private bool dcAlerted = false; 
+        private bool dcAlerted = false;
 
         void Awake()
         {
-            Application.runInBackground = true; // to prevent websockets timing out when unfocused
+            Application.runInBackground = true;
 
-            foreach (GameObject pf in Prefabs) {
+            foreach (GameObject pf in Prefabs)
+            {
                 PPEntity sse = pf.GetComponent<PPEntity>();
-                if (sse == null) {
+                if (sse == null)
+                {
                     Debug.LogError("Prefab lacks Entity component", pf);
+                    continue;
                 }
                 PrefabMap[sse.Type] = pf;
             }
-            if (ServerToClientObject) {
+
+            if (ServerToClientObject)
+            {
                 var callbackComponent = ServerToClientObject.GetComponent<MonoBehaviour>();
-                Action<Dictionary<String, object>> eventCallback = (Action<Dictionary<String, object>>)Delegate.CreateDelegate(
-                    typeof(Action<Dictionary<String, object>>), callbackComponent, "ServerToClient");
-                
-                sdk = new SDK(GameID, HandleChunk, eventCallback);
-            } else {
+                sdk = new SDK(GameID, HandleChunk, (Dictionary<string, object> evt) =>
+                {
+                    callbackComponent.Invoke("ServerToClient", 0f); // Adjust if needed
+                });
+            }
+            else
+            {
                 sdk = new SDK(GameID, HandleChunk);
             }
+
             Player.GetComponent<PPEntity>().Master = this;
         }
-
 
         public void Init(string username, string password, float timeout = 5000f)
         {
@@ -54,108 +60,143 @@ namespace Planetary {
             dcAlerted = false;
         }
 
-        public void Join() {
-            if (!sdk.IsConnected()) {
+        public void Join()
+        {
+            if (!sdk.IsConnected())
+            {
                 Debug.LogError("Joining failed. Client not connected to Planetary Processing servers.");
+                return;
             }
+            Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] join start");
             sdk.Join();
         }
 
-        private void HandleChunk(Chunk cnk) {
+        private void HandleChunk(Chunk cnk)
+        {
             if (ChunkPrefab == null) return;
-            if (Chunks.ContainsKey(cnk.id)) {
-                PPChunk ppchunk = Chunks[cnk.id].GetComponent<PPChunk>();
-                ppchunk.data = cnk.data;
-            } else {
-                GameObject go = Instantiate(ChunkPrefab);
-                if (TwoDimensions) {
-                    go.transform.position = new Vector3(cnk.x*ChunkSize, cnk.y*ChunkSize, 0);
 
-                } else {
-                    go.transform.position = new Vector3(cnk.x*ChunkSize, 0, cnk.y*ChunkSize);
-                }
-                PPChunk ppchunk = go.GetComponent<PPChunk>();
+            if (Chunks.ContainsKey(cnk.id))
+            {
+                var ppchunk = Chunks[cnk.id].GetComponent<PPChunk>();
+                ppchunk.data = cnk.data;
+            }
+            else
+            {
+                GameObject go = Instantiate(ChunkPrefab);
+                go.transform.position = TwoDimensions ?
+                    new Vector3(cnk.x * ChunkSize, cnk.y * ChunkSize, 0) :
+                    new Vector3(cnk.x * ChunkSize, 0, cnk.y * ChunkSize);
+
+                var ppchunk = go.GetComponent<PPChunk>();
                 ppchunk.data = cnk.data;
                 ppchunk.id = cnk.id;
                 ppchunk.x = cnk.x;
                 ppchunk.y = cnk.y;
                 Chunks[cnk.id] = go;
             }
+
             List<ulong> toRemove = new List<ulong>();
-            foreach ((ulong id, GameObject other) in Chunks) {
-                PPChunk ppchunk = other.GetComponent<PPChunk>();
-                if (Mathf.Abs(ppchunk.x-cnk.x) > 3 || Mathf.Abs(ppchunk.y-cnk.y) > 3) {
+            foreach (var kvp in Chunks)
+            {
+                var id = kvp.Key;
+                var other = kvp.Value;
+                var ppchunk = other.GetComponent<PPChunk>();
+                if (Mathf.Abs(ppchunk.x - cnk.x) > 3 || Mathf.Abs(ppchunk.y - cnk.y) > 3)
+                {
                     Destroy(other);
                     toRemove.Add(id);
                 }
             }
-            foreach (ulong id in toRemove) {
+
+            foreach (ulong id in toRemove)
+            {
                 Chunks.Remove(id);
             }
         }
 
         void FixedUpdate()
         {
-            if (!sdk.IsConnected()) {
-                if (!dcAlerted) {
+            if (!sdk.IsConnected())
+            {
+                if (!dcAlerted)
+                {
                     Debug.LogError("Connection to server lost");
                     dcAlerted = true;
                 }
                 return;
             }
-            
+
             sdk.Update();
-            foreach ((string uuid, Entity e) in sdk.entities) {
-                if (!Entities.ContainsKey(uuid)) {
+
+            foreach (var kvp in sdk.entities)
+            {
+                string uuid = kvp.Key;
+                Entity e = kvp.Value;
+
+                if (!Entities.ContainsKey(uuid))
+                {
                     GameObject g;
-                    if (sdk.UUID == uuid) { 
+                    if (sdk.UUID == uuid)
+                    {
                         g = Player;
-                    } else if (PrefabMap.ContainsKey(e.type)) {
+                    }
+                    else if (PrefabMap.ContainsKey(e.type))
+                    {
                         g = Instantiate(PrefabMap[e.type]);
-                    } else {
+                    }
+                    else
+                    {
                         continue;
                     }
+
                     Entities[uuid] = g;
                     PPEntity ppe = g.GetComponent<PPEntity>();
                     ppe.UUID = uuid;
                     ppe.Master = this;
                 }
             }
-            
+
             List<string> toRemove = new List<string>();
-            foreach ((string uuid, GameObject e) in Entities) {
-                if (!sdk.entities.ContainsKey(uuid)) {
-                    if (uuid != sdk.UUID) {
+            foreach (var kvp in Entities)
+            {
+                string uuid = kvp.Key;
+                GameObject e = kvp.Value;
+
+                if (!sdk.entities.ContainsKey(uuid))
+                {
+                    if (uuid != sdk.UUID)
+                    {
                         Destroy(e);
                     }
                     toRemove.Add(uuid);
                 }
             }
 
-            foreach (string uuid in toRemove) {
+            foreach (string uuid in toRemove)
+            {
                 Entities.Remove(uuid);
             }
         }
 
-        public Entity GetEntity(string uuid) {
-            if (!sdk.entities.ContainsKey(uuid)) {
-                return null;
-            }
-            return sdk.entities[uuid];
+        public Entity GetEntity(string uuid)
+        {
+            Entity result;
+            return sdk.entities.TryGetValue(uuid, out result) ? result : null;
         }
 
-        public List<Entity> GetEntities() {
+        public List<Entity> GetEntities()
+        {
             return new List<Entity>(sdk.entities.Values);
         }
 
-        public void Message(Dictionary<string, object> msg) {
-            if (!sdk.IsConnected()) {
-                return;
-            }
+        public void Message(Dictionary<string, object> msg)
+        {
+            if (!sdk.IsConnected()) return;
             sdk.Message(msg);
         }
 
-        public bool IsConnected(){
+        public bool IsConnected()
+        {
             return sdk.IsConnected();
         }
 
