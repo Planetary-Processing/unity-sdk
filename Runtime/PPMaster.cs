@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Threading;
-
+using UnityEngine.SceneManagement;
 
 namespace Planetary
 {
@@ -12,9 +12,16 @@ namespace Planetary
     {
         private SDK sdk;
         public GameObject Player;
+        public bool UseScenePlayer = false;
+        public string ScenePlayerName = "";
+        private GameObject playerInstance;
+
         public GameObject ChunkPrefab;
         public GameObject[] Prefabs;
+        public string[] Scenes;
+
         private Dictionary<string, GameObject> PrefabMap = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject> SceneMap = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject> Entities = new Dictionary<string, GameObject>();
         private Dictionary<ulong, GameObject> Chunks = new Dictionary<ulong, GameObject>();
         public ulong GameID;
@@ -27,8 +34,7 @@ namespace Planetary
         {
             Application.runInBackground = true;
 
-            foreach (GameObject pf in Prefabs)
-            {
+            foreach (GameObject pf in Prefabs) {
                 PPEntity sse = pf.GetComponent<PPEntity>();
                 if (sse == null)
                 {
@@ -38,20 +44,43 @@ namespace Planetary
                 PrefabMap[sse.Type] = pf;
             }
 
-            if (ServerToClientObject)
+            if (Scenes != null && Scenes.Length > 0)
             {
+                foreach (var sceneName in Scenes)
+                {
+                    if (!string.IsNullOrEmpty(sceneName))
+                    {
+                        StartCoroutine(LoadSceneEntities(sceneName));
+                    }
+                }
+            }
+
+            if (ServerToClientObject) {
                 var callbackComponent = ServerToClientObject.GetComponent<MonoBehaviour>();
                 sdk = new SDK(GameID, HandleChunk, (Dictionary<string, object> evt) =>
                 {
-                    callbackComponent.Invoke("ServerToClient", 0f); // Adjust if needed
+                    callbackComponent.Invoke("ServerToClient", 0f);
                 });
             }
-            else
-            {
+            else {
                 sdk = new SDK(GameID, HandleChunk);
             }
 
-            Player.GetComponent<PPEntity>().Master = this;
+            if (UseScenePlayer && !string.IsNullOrEmpty(ScenePlayerName)) {
+                StartCoroutine(LoadPlayerFromScene());
+            }
+            else if (Player != null) {
+                playerInstance = Player;
+                var ppe = Player.GetComponent<PPEntity>();
+                if (ppe != null) {
+                    ppe.Master = this;
+                }
+                else {
+                    Debug.LogWarning("Player prefab is missing PPEntity.");
+                }
+            } else {
+                Debug.LogError("Player not assigned and scene player not enabled.");
+            }
         }
 
         public void Init(string username, string password, float timeout = 5000f)
@@ -135,17 +164,24 @@ namespace Planetary
 
                 if (!Entities.ContainsKey(uuid))
                 {
-                    GameObject g;
+                    GameObject g = null;
+
                     if (sdk.UUID == uuid)
                     {
-                        g = Player;
+                        g = playerInstance != null ? playerInstance : Player;
                     }
                     else if (PrefabMap.ContainsKey(e.type))
                     {
                         g = Instantiate(PrefabMap[e.type]);
                     }
+                    else if (SceneMap.ContainsKey(e.type))
+                    {
+                        g = Instantiate(SceneMap[e.type]);
+                        g.SetActive(true);
+                    }
                     else
                     {
+                        Debug.LogWarning($"No prefab or scene entity found for type '{e.type}'");
                         continue;
                     }
 
@@ -206,6 +242,74 @@ namespace Planetary
             {
                 sdk.Logout();
                 Debug.Log("Player Disconnected");
+            }
+        }
+
+        private IEnumerator LoadSceneEntities(string sceneName)
+        {
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            yield return asyncLoad;
+
+            Scene loadedScene = SceneManager.GetSceneByName(sceneName);
+            if (!loadedScene.IsValid())
+            {
+                Debug.LogError($"Failed to load entity scene '{sceneName}'. Make sure it's added to Build Settings.");
+                yield break;
+            }
+
+            GameObject[] rootObjects = loadedScene.GetRootGameObjects();
+
+            foreach (var obj in rootObjects)
+            {
+                var ppe = obj.GetComponent<PPEntity>();
+                if (ppe != null)
+                {
+                    string type = ppe.Type;
+                    if (!SceneMap.ContainsKey(type))
+                    {
+                        SceneMap[type] = obj;
+                        obj.SetActive(false);
+                        ppe.Master = this;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Duplicate entity type '{type}' found in scene '{sceneName}'. Skipping.");
+                    }
+                }
+            }
+        }
+
+        private IEnumerator LoadPlayerFromScene()
+        {
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(ScenePlayerName, LoadSceneMode.Additive);
+            yield return asyncLoad;
+
+            Scene loadedScene = SceneManager.GetSceneByName(ScenePlayerName);
+            GameObject[] rootObjects = loadedScene.GetRootGameObjects();
+            foreach (var obj in rootObjects)
+            {
+                if (obj.CompareTag("Player"))
+                {
+                    playerInstance = obj;
+                    break;
+                }
+            }
+
+            if (playerInstance != null)
+            {
+                var ppe = playerInstance.GetComponent<PPEntity>();
+                if (ppe != null)
+                {
+                    ppe.Master = this;
+                }
+                else
+                {
+                    Debug.LogWarning("Scene player object is missing PPEntity component.");
+                }
+            }
+            else
+            {
+                Debug.LogError("No player GameObject found in scene. Make sure it is tagged 'Player'.");
             }
         }
     }

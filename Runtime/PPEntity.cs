@@ -10,6 +10,10 @@ namespace Planetary {
         protected Entity entity;
         public string Type;
         public bool useServerPosition = true;
+        [SerializeField] public bool useSync = false; // Checkbox to enable sync instead of spawn
+        [SerializeField] public string SyncID = ""; // New field for matching
+        
+        private bool synced = false; // Internal flag to prevent re-syncing
 
         internal PPMaster Master;
         internal string UUID  = "";
@@ -17,7 +21,10 @@ namespace Planetary {
 
         protected void Start()
         {
+            Debug.Log("Start: ");
+            Debug.Log(Type);
             entity = Master.GetEntity(UUID);
+            
             updatePosition();
         }
 
