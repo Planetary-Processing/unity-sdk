@@ -10,8 +10,8 @@ namespace Planetary {
         protected Entity entity;
         public string Type;
         public bool useServerPosition = true;
-        [SerializeField] public bool useSync = false; // Checkbox to enable sync instead of spawn
-        [SerializeField] public string SyncID = ""; // New field for matching
+
+        [SerializeField] private string UUIDOverride = "";
         
         private bool synced = false; // Internal flag to prevent re-syncing
 
@@ -21,9 +21,8 @@ namespace Planetary {
 
         protected void Start()
         {
-            Debug.Log("Start: ");
-            Debug.Log(Type);
-            entity = Master.GetEntity(UUID);
+            string activeUUID = !string.IsNullOrEmpty(UUIDOverride) ? UUIDOverride : UUID;
+            entity = Master.GetEntity(activeUUID);
             
             updatePosition();
         }

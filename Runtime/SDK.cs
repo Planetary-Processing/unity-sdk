@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using RC4Cryptography;
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.IO;
@@ -52,8 +53,6 @@ namespace Planetary {
         private RC4 inp;
         private RC4 oup;
 
-        //private ClientWebSocket client;
-
         private DateTime lastMessageReceived = DateTime.UtcNow;
         private const int timeoutSeconds = 10;
 
@@ -74,63 +73,9 @@ namespace Planetary {
 
         public void Connect(string username, string password) {
             UUID = init(username, password, gameID);
-            
-            /*Thread t = new Thread(() => {
-                Task t = init(username, password, gameID);
-                t.Wait();
-            });
-            t.Start(); 
-            t.Join();
-            */
         }
 
-        /*private async Task init(string email, string password, ulong gameID) {
-            Console.SetOut(new StreamWriter("sdk_log2.txt") { AutoFlush = true });
-            try {
-                client = new ClientWebSocket();
-
-                // Setting the Origin header for authentication
-                client.Options.SetRequestHeader("Origin", "https://planetaryprocessing.io\r\n");
-
-                Console.WriteLine("confirm auth params:'" + email + "', '" + password + "', '" + gameID + "'");
-
-                // First connection
-                var websocketUri = "wss://planetaryprocessing.io/_ws";
-                await client.ConnectAsync(new Uri(websocketUri), CancellationToken.None);
-                connected = true;
-
-                // Creating a Login message using Protobuf
-                var login = new Login {
-                    GameID = gameID,
-                    Email = email,
-                    Password = password
-                };
-                // Serializing the Login message to a byte array & send to server
-                Byte[] dat = login.ToByteArray();
-                await client.SendAsync(new ArraySegment<byte>(dat), WebSocketMessageType.Text, true, CancellationToken.None);
-                // Wait for response and get the UUID from the message
-                byte[] buffer = new byte[1024 * 4];
-                WebSocketReceiveResult result = await client.ReceiveAsync(buffer, CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Text) {
-                    var uuid = Login.Parser.ParseFrom(buffer.Take(result.Count).ToArray()); // retrieve login message ({"UUID" : "....."})
-                    UUID = uuid.UUID;
-                    if (string.IsNullOrEmpty(UUID)) {
-                        throw new OperationCanceledException("Connection denied: game offline.");
-                    }
-                }
-                Console.WriteLine("Websocket connected & authenticated");
-
-                thread = new Thread(new ThreadStart(recv));
-                StartWatchdog(); // new Thread to check the connection and report timeouts
-                thread.Start();
-                Thread.Sleep(1000); // buffer time for connection lag(?)
-
-            } catch (Exception e) {
-                Console.WriteLine("error" + e);
-                connected = false;
-                throw e;
-            }
-        }*/
+       
         private string init(string email, string password, ulong gameID) {
             string uuid = "";
             Console.SetOut(new StreamWriter("sdk_log2.txt") { AutoFlush = true });
@@ -207,7 +152,16 @@ namespace Planetary {
             send(new Packet { Arbitrary = s });
         }
 
-        public void Logout() {
+        public void DirectMessage(string uuid, Dictionary<string, object> msg)
+        {
+            string jsonData = JsonConvert.SerializeObject(msg);
+
+            var message = new Message{ TargetUUID = uuid, Data = jsonData };
+            send(new Packet { Message = message });
+        }
+
+        public void Logout()
+        {
             send(new Packet { Leave = true });
             Console.WriteLine("Client disconnected from server");
             connected = false;
@@ -215,9 +169,7 @@ namespace Planetary {
 
         // Decodes and formats a packet coming
         private void handlePacket(Packet packet) {
-          Console.WriteLine("handling packet: start");
             if (packet.Update != null) {
-                Console.WriteLine("B1: Update. Start");
                 Entity e = null;
                 if (entities.TryGetValue(packet.Update.EntityID, out e)) {
                     e.x = packet.Update.X;
@@ -237,15 +189,11 @@ namespace Planetary {
                         type = packet.Update.Type
                     });
                 }
-                Console.WriteLine("B1: Update. End");
             }
             if (packet.Delete != null && packet.Delete.EntityID != UUID) {
-                Console.WriteLine("B2: Delete. Start");
                 entities.Remove(packet.Delete.EntityID);
-                Console.WriteLine("B2: Delete. End");
             }
             if (packet.Chunk != null) {
-                Console.WriteLine("B3: Chunk. Start");
                 if (chunkCallback != null) {
                     chunkCallback.Invoke(new Chunk {
                         id = packet.Chunk.ID,
@@ -254,12 +202,9 @@ namespace Planetary {
                         data = decodeEvent(packet.Chunk.Data)
                     });
                 }
-                Console.WriteLine("B3: Chunk. End");
             }
             if (!string.IsNullOrEmpty(packet.Event)) {
-                Console.WriteLine("B4: Empty. Start");
                 eventCallback?.Invoke(decodeEvent(packet.Event));
-                Console.WriteLine("B4: Empty. End");
             }
           Console.WriteLine("handling packet: finish");
         }
@@ -285,8 +230,6 @@ namespace Planetary {
 
         // Thread for getting comms from server
         private void recv() {
-            Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] recv start");
-            Console.WriteLine(connected);
             try {
                 while (connected) {
                     string line;
@@ -301,9 +244,7 @@ namespace Planetary {
                 }
                 connected = false;
             } 
-            Console.WriteLine("Left recv");
         }
-
 
         private Login decodeLogin(string s) {
         Byte[] bts = System.Convert.FromBase64String(s);
@@ -369,13 +310,11 @@ namespace Planetary {
         private Dictionary<string, object> decodeEvent(string e) {
             try {
                 var jtokenDict = JsonConvert.DeserializeObject<Dictionary<string, JToken>>(e);
-                Console.WriteLine("Deserialized Dictionary<JToken>:");
                 foreach (var kv in jtokenDict) {
                     Console.WriteLine($"  {kv.Key}: {kv.Value} (Type: {kv.Value.Type})");
                 }
 
                 var variantDict = ConvertToVariantDictionary(jtokenDict);
-                Console.WriteLine("Converted Dictionary<object>:");
                 foreach (var kv in variantDict) {
                     Console.WriteLine($"  {kv.Key}: {kv.Value} (Type: {kv.Value?.GetType().Name ?? "null"})");
                 }

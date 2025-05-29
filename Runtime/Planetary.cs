@@ -32,14 +32,15 @@ namespace Planetary {
             "CQoBWRgDIAEoARIJCgFaGAQgASgBEgwKBERhdGEYBSABKAkSDAoEVHlwZRgG",
             "IAEoCSIgCgxEZWxldGVFbnRpdHkSEAoIRW50aXR5SUQYASABKAkiPQoLQ2h1",
             "bmtVcGRhdGUSCgoCSUQYASABKAQSDAoERGF0YRgCIAEoCRIJCgFYGAMgASgD",
-            "EgkKAVkYBCABKAMi1QEKBlBhY2tldBIhCgRKb2luGAEgASgLMhMucGxhbmV0",
+            "EgkKAVkYBCABKAMi+gEKBlBhY2tldBIhCgRKb2luGAEgASgLMhMucGxhbmV0",
             "YXJ5LlBvc2l0aW9uEicKBlVwZGF0ZRgCIAEoCzIXLnBsYW5ldGFyeS5VcGRh",
             "dGVFbnRpdHkSJwoGRGVsZXRlGAMgASgLMhcucGxhbmV0YXJ5LkRlbGV0ZUVu",
             "dGl0eRINCgVMZWF2ZRgEIAEoCBIRCglBcmJpdHJhcnkYBSABKAkSDQoFRXZl",
             "bnQYBiABKAkSJQoFQ2h1bmsYByABKAsyFi5wbGFuZXRhcnkuQ2h1bmtVcGRh",
-            "dGUiVQoFTG9naW4SDQoFVG9rZW4YASABKAkSDgoGR2FtZUlEGAIgASgEEgwK",
-            "BFVVSUQYAyABKAkSDQoFRW1haWwYBCABKAkSEAoIUGFzc3dvcmQYBSABKAli",
-            "BnByb3RvMw=="));
+            "dGUSIwoHTWVzc2FnZRgIIAEoCzISLnBsYW5ldGFyeS5NZXNzYWdlIisKB01l",
+            "c3NhZ2USEgoKVGFyZ2V0VVVJRBgBIAEoCRIMCgREYXRhGAIgASgJIlUKBUxv",
+            "Z2luEg0KBVRva2VuGAEgASgJEg4KBkdhbWVJRBgCIAEoBBIMCgRVVUlEGAMg",
+            "ASgJEg0KBUVtYWlsGAQgASgJEhAKCFBhc3N3b3JkGAUgASgJYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
@@ -49,7 +50,8 @@ namespace Planetary {
             new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.UpdateEntity), global::Planetary.UpdateEntity.Parser, new[]{ "EntityID", "X", "Y", "Z", "Data", "Type" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.DeleteEntity), global::Planetary.DeleteEntity.Parser, new[]{ "EntityID" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.ChunkUpdate), global::Planetary.ChunkUpdate.Parser, new[]{ "ID", "Data", "X", "Y" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.Packet), global::Planetary.Packet.Parser, new[]{ "Join", "Update", "Delete", "Leave", "Arbitrary", "Event", "Chunk" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.Packet), global::Planetary.Packet.Parser, new[]{ "Join", "Update", "Delete", "Leave", "Arbitrary", "Event", "Chunk", "Message" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.Message), global::Planetary.Message.Parser, new[]{ "TargetUUID", "Data" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Planetary.Login), global::Planetary.Login.Parser, new[]{ "Token", "GameID", "UUID", "Email", "Password" }, null, null, null)
           }));
     }
@@ -1205,6 +1207,7 @@ namespace Planetary {
       arbitrary_ = other.arbitrary_;
       event_ = other.event_;
       chunk_ = other.chunk_ != null ? other.chunk_.Clone() : null;
+      message_ = other.message_ != null ? other.message_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1311,6 +1314,20 @@ namespace Planetary {
       }
     }
 
+    /// <summary>Field number for the "Message" field.</summary>
+    public const int MessageFieldNumber = 8;
+    private global::Planetary.Message message_;
+    /// <summary>
+    /// client side (replaces Arbitrary)
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public global::Planetary.Message Message {
+      get { return message_; }
+      set {
+        message_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Packet);
@@ -1331,6 +1348,7 @@ namespace Planetary {
       if (Arbitrary != other.Arbitrary) return false;
       if (Event != other.Event) return false;
       if (!object.Equals(Chunk, other.Chunk)) return false;
+      if (!object.Equals(Message, other.Message)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1344,6 +1362,7 @@ namespace Planetary {
       if (Arbitrary.Length != 0) hash ^= Arbitrary.GetHashCode();
       if (Event.Length != 0) hash ^= Event.GetHashCode();
       if (chunk_ != null) hash ^= Chunk.GetHashCode();
+      if (message_ != null) hash ^= Message.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1385,6 +1404,10 @@ namespace Planetary {
         output.WriteRawTag(58);
         output.WriteMessage(Chunk);
       }
+      if (message_ != null) {
+        output.WriteRawTag(66);
+        output.WriteMessage(Message);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1413,6 +1436,9 @@ namespace Planetary {
       }
       if (chunk_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Chunk);
+      }
+      if (message_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Message);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1457,6 +1483,12 @@ namespace Planetary {
           chunk_ = new global::Planetary.ChunkUpdate();
         }
         Chunk.MergeFrom(other.Chunk);
+      }
+      if (other.message_ != null) {
+        if (message_ == null) {
+          message_ = new global::Planetary.Message();
+        }
+        Message.MergeFrom(other.Message);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1509,6 +1541,170 @@ namespace Planetary {
             input.ReadMessage(chunk_);
             break;
           }
+          case 66: {
+            if (message_ == null) {
+              message_ = new global::Planetary.Message();
+            }
+            input.ReadMessage(message_);
+            break;
+          }
+        }
+      }
+    }
+
+  }
+
+  public sealed partial class Message : pb::IMessage<Message> {
+    private static readonly pb::MessageParser<Message> _parser = new pb::MessageParser<Message>(() => new Message());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pb::MessageParser<Message> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Planetary.PlanetaryReflection.Descriptor.MessageTypes[7]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Message() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Message(Message other) : this() {
+      targetUUID_ = other.targetUUID_;
+      data_ = other.data_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public Message Clone() {
+      return new Message(this);
+    }
+
+    /// <summary>Field number for the "TargetUUID" field.</summary>
+    public const int TargetUUIDFieldNumber = 1;
+    private string targetUUID_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string TargetUUID {
+      get { return targetUUID_; }
+      set {
+        targetUUID_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "Data" field.</summary>
+    public const int DataFieldNumber = 2;
+    private string data_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string Data {
+      get { return data_; }
+      set {
+        data_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override bool Equals(object other) {
+      return Equals(other as Message);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public bool Equals(Message other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (TargetUUID != other.TargetUUID) return false;
+      if (Data != other.Data) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (TargetUUID.Length != 0) hash ^= TargetUUID.GetHashCode();
+      if (Data.Length != 0) hash ^= Data.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void WriteTo(pb::CodedOutputStream output) {
+      if (TargetUUID.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(TargetUUID);
+      }
+      if (Data.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Data);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int CalculateSize() {
+      int size = 0;
+      if (TargetUUID.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(TargetUUID);
+      }
+      if (Data.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Data);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(Message other) {
+      if (other == null) {
+        return;
+      }
+      if (other.TargetUUID.Length != 0) {
+        TargetUUID = other.TargetUUID;
+      }
+      if (other.Data.Length != 0) {
+        Data = other.Data;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public void MergeFrom(pb::CodedInputStream input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            TargetUUID = input.ReadString();
+            break;
+          }
+          case 18: {
+            Data = input.ReadString();
+            break;
+          }
         }
       }
     }
@@ -1523,7 +1719,7 @@ namespace Planetary {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Planetary.PlanetaryReflection.Descriptor.MessageTypes[7]; }
+      get { return global::Planetary.PlanetaryReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

@@ -225,10 +225,16 @@ namespace Planetary
             return new List<Entity>(sdk.entities.Values);
         }
 
-        public void Message(Dictionary<string, object> msg)
+        public void Message(Dictionary<string, object> msg) // using Arbitrary 
         {
             if (!sdk.IsConnected()) return;
             sdk.Message(msg);
+        }
+
+        public void Message(string uuid, Dictionary<string, object> msg) // using Message {string TargetUUID = 1; string Data = 2;}
+        {
+            if (!sdk.IsConnected()) return;
+            sdk.DirectMessage(uuid, msg);
         }
 
         public bool IsConnected()
