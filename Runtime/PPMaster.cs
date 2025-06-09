@@ -57,10 +57,10 @@ namespace Planetary
 
             if (ServerToClientObject) {
                 var callbackComponent = ServerToClientObject.GetComponent<MonoBehaviour>();
-                sdk = new SDK(GameID, HandleChunk, (Dictionary<string, object> evt) =>
-                {
-                    callbackComponent.Invoke("ServerToClient", 0f);
-                });
+                Action<Dictionary<String, object>> eventCallback = (Action<Dictionary<String, object>>)Delegate.CreateDelegate(
+                    typeof(Action<Dictionary<String, object>>), callbackComponent, "ServerToClient");
+                
+                sdk = new SDK(GameID, HandleChunk, eventCallback);
             }
             else {
                 sdk = new SDK(GameID, HandleChunk);
