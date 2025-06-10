@@ -292,30 +292,20 @@ namespace Planetary
 
             Scene loadedScene = SceneManager.GetSceneByName(ScenePlayerName);
             GameObject[] rootObjects = loadedScene.GetRootGameObjects();
+            PPEntity ppe = null;
             foreach (var obj in rootObjects)
             {
-                if (obj.CompareTag("Player"))
+                if (obj.TryGetComponent<PPEntity>(out ppe) && ppe.Type == "")
                 {
                     playerInstance = obj;
+                    ppe.Master = this;
                     break;
                 }
             }
 
-            if (playerInstance != null)
+            if (playerInstance == null || ppe.Master == null)
             {
-                var ppe = playerInstance.GetComponent<PPEntity>();
-                if (ppe != null)
-                {
-                    ppe.Master = this;
-                }
-                else
-                {
-                    Debug.LogWarning("Scene player object is missing PPEntity component.");
-                }
-            }
-            else
-            {
-                Debug.LogError("No player GameObject found in scene. Make sure it is tagged 'Player'.");
+                Debug.LogWarning("Scene player object is missing PPEntity component. Or its Type is not empty.");
             }
         }
     }
