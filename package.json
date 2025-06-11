@@ -1,11 +1,12 @@
 {
-	"name":"io.planetaryprocessing.ppsdk",
-	"version":"2.1.1",
-	"displayName":"Planetary Processing SDK",
-	"description":"SDK for using Planetary Processing's multiplayer gaming service with Unity.",
-	"type":"tool",
-	"author": "Planetary Processing Ltd",
-	"dependencies": {
-		 "com.unity.nuget.newtonsoft-json": "3.0.2"
-	}
+  "name": "io.planetaryprocessing.ppsdk",
+  "version": "2.1.1",
+  "displayName": "Planetary Processing SDK",
+  "description": "SDK for using Planetary Processing's multiplayer gaming service with Unity.",
+  "type": "tool",
+  "author": "Planetary Processing Ltd",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
+  },
+  "_fingerprint": "a96bdd99ca86658d61e1ca18b05dc2b36da8d5a0"
 }
