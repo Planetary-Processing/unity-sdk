@@ -274,6 +274,8 @@ namespace Planetary {
             switch (value.Type) {
                 case JTokenType.Boolean:
                     return value.ToObject<bool>();
+                case JTokenType.Integer:
+                    return value.ToObject<long>();    
                 case JTokenType.Float:
                     return value.ToObject<double>();
                 case JTokenType.String:
